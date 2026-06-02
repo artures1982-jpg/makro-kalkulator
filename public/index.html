@@ -197,7 +197,7 @@
     </div>
 
     <div class="search-wrap">
-      <input type="text" class="search-input" id="searchInput" placeholder="Szukaj produktu (np. karkówka, mozzarella, masło klarowane)…">
+      <input type="text" class="search-input" id="searchInput" placeholder="Szukaj produktu keto (np. losos, boczek, mozzarella, migdaly)…">
       <span class="search-icon" id="searchIcon">🔍</span>
       <div class="dropdown" id="dropdown" style="display:none"></div>
     </div>
@@ -247,6 +247,13 @@
 </div>
 
 <script>
+// ─── BAZA PRODUKTOW ───────────────────────────────────
+let DB = [];
+fetch('/products.json')
+  .then(r => r.json())
+  .then(data => { DB = data; console.log('Zaladowano baze:', DB.length, 'produktow'); })
+  .catch(e => console.error('Blad ladowania bazy:', e));
+
 // ─── STATE ───────────────────────────────────────────────
 let ingredients = [];   // { id, name, kcal, p, f, c, img, lock, lockGrams }
 let solved = null;      // array of grams
@@ -311,23 +318,23 @@ searchInput.addEventListener('input', () => {
   const q = searchInput.value.trim();
   clearTimeout(debounceTimer);
   if (q.length < 2) { hideDropdown(); return; }
-  debounceTimer = setTimeout(() => doSearch(q), 500);
+  debounceTimer = setTimeout(() => doSearch(q), 200);
 });
 
 searchInput.addEventListener('blur', () => setTimeout(hideDropdown, 200));
 
-async function doSearch(q) {
-  searchIcon.innerHTML = '<span class="spinner">⟳</span>';
+function doSearch(q) {
   dropdown.style.display = 'block';
-  dropdown.innerHTML = '<div class="dropdown-loading"><div class="loading-pulse">✦ Szukam w Open Food Facts…</div></div>';
-
-  try {
-    const res = await fetch('/api/search?q=' + encodeURIComponent(q) + '&lang=pl');
-    const data = await res.json();
-    renderDropdown(data.products || []);
-  } catch(e) {
-    dropdown.innerHTML = '<div class="dropdown-empty">Błąd połączenia — spróbuj ponownie</div>';
+  if (DB.length === 0) {
+    dropdown.innerHTML = '<div class="dropdown-empty">Baza sie laduje, sprobuj za chwile...</div>';
+    return;
   }
+  const ql = q.toLowerCase();
+  const results = DB.filter(p =>
+    p.name.toLowerCase().includes(ql) ||
+    (p.name_en && p.name_en.toLowerCase().includes(ql))
+  ).slice(0, 15);
+  renderDropdown(results);
   searchIcon.textContent = '🔍';
 }
 
