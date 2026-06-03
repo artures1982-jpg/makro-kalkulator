@@ -3925,34 +3925,19 @@
     "keto": true
   },
   {
-    "id": "manual_ghee2",
+    "id": "manual_ghee_label",
     "name": "Masło klarowane",
-    "name_en": "Clarified butter",
+    "name_en": "Clarified butter (ghee)",
     "cat": "Tłuszcze",
-    "kcal": 895,
-    "p": 0.3,
-    "f": 99.5,
-    "c": 0,
+    "kcal": 898,
+    "p": 0.1,
+    "f": 99.8,
+    "c": 0.1,
     "fiber": 0,
-    "sugar": 0,
-    "net_carbs": 0,
+    "sugar": 0.1,
+    "net_carbs": 0.1,
     "keto": true,
-    "source": "manual"
-  },
-  {
-    "id": "manual_ghee",
-    "name": "Masło klarowane (ghee)",
-    "name_en": "Ghee",
-    "cat": "Tłuszcze",
-    "kcal": 895,
-    "p": 0.3,
-    "f": 99.5,
-    "c": 0,
-    "fiber": 0,
-    "sugar": 0,
-    "net_carbs": 0,
-    "keto": true,
-    "source": "manual"
+    "source": "etykieta"
   },
   {
     "id": "manual_rapeseed",
