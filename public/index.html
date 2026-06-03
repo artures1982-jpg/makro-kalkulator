@@ -476,26 +476,48 @@ function updateCalcBtn() {
 function solve(ings, targetKcal, rP, rF, rC) {
   const n = ings.length;
   if (n === 0 || targetKcal <= 0) return [];
+
+  // Docelowe gramy makro
   const tP = (targetKcal * rP / 100) / 4;
   const tF = (targetKcal * rF / 100) / 9;
   const tC = (targetKcal * rC / 100) / 4;
-  const items = ings.map(ing => ({ p1: ing.p/100, f1: ing.f/100, c1: ing.c/100, k1: ing.kcal/100 }));
-  let logG = items.map(it => Math.log(Math.max(it.k1 > 0 ? (targetKcal/n)/it.k1 : 20, 1)));
-  const wK=1, wP=3, wF=3, wC=3;
-  for (let iter=0; iter<5000; iter++) {
-    const gs = logG.map(lg => Math.exp(lg));
-    const sK=gs.reduce((s,g,i)=>s+g*items[i].k1,0), sP=gs.reduce((s,g,i)=>s+g*items[i].p1,0);
-    const sF=gs.reduce((s,g,i)=>s+g*items[i].f1,0), sC=gs.reduce((s,g,i)=>s+g*items[i].c1,0);
-    const eK=sK-targetKcal, eP=sP-tP, eF=sF-tF, eC=sC-tC;
-    const lr = 0.02*(1-iter/5000*.8);
-    for (let i=0; i<n; i++) {
-      const gi=gs[i];
-      const grad=(wK*2*eK*items[i].k1+wP*2*eP*items[i].p1+wF*2*eF*items[i].f1+wC*2*eC*items[i].c1)*gi;
-      logG[i]-=lr*grad;
-      logG[i]=Math.max(Math.log(1),Math.min(Math.log(800),logG[i]));
+
+  const items = ings.map(ing => ({
+    p1: ing.p / 100, f1: ing.f / 100, c1: ing.c / 100, k1: ing.kcal / 100
+  }));
+
+  // Krok 1: start od równego podziału kalorii
+  let g = items.map(it => it.k1 > 0 ? (targetKcal / n) / it.k1 : 10);
+
+  // Krok 2: gradient descent bez log-przestrzeni, z adaptacyjnym LR
+  const wK = 2, wP = 3, wF = 3, wC = 3;
+  const MIN_G = 1, MAX_G = 500;
+
+  for (let iter = 0; iter < 8000; iter++) {
+    const sK = g.reduce((s,gi,i) => s + gi*items[i].k1, 0);
+    const sP = g.reduce((s,gi,i) => s + gi*items[i].p1, 0);
+    const sF = g.reduce((s,gi,i) => s + gi*items[i].f1, 0);
+    const sC = g.reduce((s,gi,i) => s + gi*items[i].c1, 0);
+    const eK = sK - targetKcal, eP = sP - tP, eF = sF - tF, eC = sC - tC;
+
+    // Zatrzymaj gdy blisko celu
+    if (Math.abs(eK) < 2 && Math.abs(eP) < 1 && Math.abs(eF) < 1 && Math.abs(eC) < 1) break;
+
+    const lr = 0.001 * (1 - iter / 8000 * 0.5);
+    for (let i = 0; i < n; i++) {
+      const grad = wK*2*eK*items[i].k1 + wP*2*eP*items[i].p1 + wF*2*eF*items[i].f1 + wC*2*eC*items[i].c1;
+      g[i] = Math.max(MIN_G, Math.min(MAX_G, g[i] - lr * grad));
     }
   }
-  return logG.map(lg=>Math.round(Math.exp(lg)*10)/10);
+
+  // Krok 3: skaluj proporcjonalnie żeby suma kcal była dokładnie = target
+  const totalKcal = g.reduce((s,gi,i) => s + gi*items[i].k1, 0);
+  if (totalKcal > 0) {
+    const scale = targetKcal / totalKcal;
+    g = g.map(gi => Math.max(1, gi * scale));
+  }
+
+  return g.map(gi => Math.round(gi * 10) / 10);
 }
 
 // ─── CALCULATE ───────────────────────────────────────────
