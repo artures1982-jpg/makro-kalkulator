@@ -427,10 +427,13 @@ function renderDropdown(products) {
   dropdown._products = products;
 
   dropdown.querySelectorAll('.dropdown-item').forEach(el => {
-    el.addEventListener('mousedown', () => {
+    const pick = () => {
       const idx = parseInt(el.dataset.idx);
       addIngredient(dropdown._products[idx]);
-    });
+      hideDropdown();
+    };
+    el.addEventListener('mousedown', pick);
+    el.addEventListener('touchend', (e) => { e.preventDefault(); pick(); });
   });
 }
 
