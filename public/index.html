@@ -486,35 +486,41 @@ function solve(ings, targetKcal, rP, rF, rC) {
     p1: ing.p / 100, f1: ing.f / 100, c1: ing.c / 100, k1: ing.kcal / 100
   }));
 
+  // Min/max gramatura — rozsądne granice per składnik
+  // Min: tyle żeby dać min 5% udziału kalorycznego każdemu składnikowi
+  const minShare = 0.05;
+  const MIN_G = items.map(it => it.k1 > 0 ? Math.max(10, (targetKcal * minShare) / (it.k1 * n * 0.5)) : 10);
+  const MAX_G = items.map(it => it.k1 > 0 ? (targetKcal * 0.6) / it.k1 : 800);
+
   // Krok 1: start od równego podziału kalorii
-  let g = items.map(it => it.k1 > 0 ? (targetKcal / n) / it.k1 : 10);
+  let g = items.map((it, i) => Math.max(MIN_G[i], Math.min(MAX_G[i], it.k1 > 0 ? (targetKcal / n) / it.k1 : 50)));
 
-  // Krok 2: gradient descent bez log-przestrzeni, z adaptacyjnym LR
-  const wK = 2, wP = 3, wF = 3, wC = 3;
-  const MIN_G = 1, MAX_G = 500;
+  // Krok 2: gradient descent z wagami proporcjonalnymi do wartości odżywczej składnika
+  // Priorytet: kalorie (żeby trafić w cel), potem makro
+  const wK = 3, wP = 2, wF = 2, wC = 2;
 
-  for (let iter = 0; iter < 8000; iter++) {
+  for (let iter = 0; iter < 10000; iter++) {
     const sK = g.reduce((s,gi,i) => s + gi*items[i].k1, 0);
     const sP = g.reduce((s,gi,i) => s + gi*items[i].p1, 0);
     const sF = g.reduce((s,gi,i) => s + gi*items[i].f1, 0);
     const sC = g.reduce((s,gi,i) => s + gi*items[i].c1, 0);
     const eK = sK - targetKcal, eP = sP - tP, eF = sF - tF, eC = sC - tC;
 
-    // Zatrzymaj gdy blisko celu
     if (Math.abs(eK) < 2 && Math.abs(eP) < 1 && Math.abs(eF) < 1 && Math.abs(eC) < 1) break;
 
-    const lr = 0.001 * (1 - iter / 8000 * 0.5);
+    const lr = 0.002 * (1 - iter / 10000 * 0.7);
     for (let i = 0; i < n; i++) {
       const grad = wK*2*eK*items[i].k1 + wP*2*eP*items[i].p1 + wF*2*eF*items[i].f1 + wC*2*eC*items[i].c1;
-      g[i] = Math.max(MIN_G, Math.min(MAX_G, g[i] - lr * grad));
+      g[i] = Math.max(MIN_G[i], Math.min(MAX_G[i], g[i] - lr * grad));
     }
   }
 
   // Krok 3: skaluj proporcjonalnie żeby suma kcal była dokładnie = target
+  // Zachowaj minimalne gramatury przy skalowaniu
   const totalKcal = g.reduce((s,gi,i) => s + gi*items[i].k1, 0);
   if (totalKcal > 0) {
     const scale = targetKcal / totalKcal;
-    g = g.map(gi => Math.max(1, gi * scale));
+    g = g.map((gi, i) => Math.max(MIN_G[i], gi * scale));
   }
 
   return g.map(gi => Math.round(gi * 10) / 10);
