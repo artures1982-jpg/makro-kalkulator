@@ -387,7 +387,15 @@ searchInput.addEventListener('input', () => {
   debounceTimer = setTimeout(() => doSearch(q), 200);
 });
 
-searchInput.addEventListener('blur', () => setTimeout(hideDropdown, 200));
+// Flaga blokujaca blur gdy uzytkownik tapnie w dropdown
+let dropdownTouched = false;
+
+searchInput.addEventListener('blur', () => {
+  if (dropdownTouched) return;
+  setTimeout(hideDropdown, 150);
+});
+
+let currentResults = [];
 
 function doSearch(q) {
   dropdown.style.display = 'block';
@@ -396,48 +404,57 @@ function doSearch(q) {
     return;
   }
   const ql = q.toLowerCase();
-  const results = DB.filter(p =>
+  currentResults = DB.filter(p =>
     p.name.toLowerCase().includes(ql) ||
     (p.name_en && p.name_en.toLowerCase().includes(ql))
   ).slice(0, 15);
-  renderDropdown(results);
+  renderDropdown(currentResults);
   searchIcon.textContent = '🔍';
 }
 
 function renderDropdown(products) {
   if (products.length === 0) {
-    dropdown.innerHTML = '<div class="dropdown-empty">Brak wyników — spróbuj po angielsku lub dodaj własny produkt ↑</div>';
+    dropdown.innerHTML = '<div class="dropdown-empty">Brak wynikow — sprobuj po angielsku lub dodaj wlasny produkt</div>';
     return;
   }
   dropdown.innerHTML = products.map((p, i) => {
     const imgHtml = p.img
-      ? '<img class="item-img" src="' + p.img + '" onerror="this.style.display=\'none\'" alt="">'
+      ? '<img class="item-img" src="' + p.img + '" onerror="this.style.display='none'" alt="">'
       : '<div class="item-emoji">' + foodEmoji(p.name) + '</div>';
-    const macros = '<span style="color:#e05c3a">B' + p.p + 'g</span> · <span style="color:#e8a020">T' + p.f + 'g</span> · <span style="color:#3a90d4">W' + p.c + 'g</span> · <strong>' + p.kcal + ' kcal</strong>/100g';
     const macroHtml = '<div class="item-macros">'
       + '<span class="mp">B' + p.p + 'g</span><span class="sep">·</span>'
       + '<span class="mf">T' + p.f + 'g</span><span class="sep">·</span>'
       + '<span class="mc">W' + p.c + 'g</span><span class="sep">·</span>'
       + '<span class="mk">' + p.kcal + ' kcal</span>'
       + '</div>';
-    return '<div class="dropdown-item" data-idx="' + i + '">' + imgHtml + '<div class="item-info"><div class="item-name">' + escHtml(p.name) + '</div>' + macroHtml + '</div><div class="item-add">+ dodaj</div></div>';
+    return '<div class="dropdown-item" data-idx="' + i + '">'
+      + imgHtml
+      + '<div class="item-info"><div class="item-name">' + escHtml(p.name) + '</div>' + macroHtml + '</div>'
+      + '<div class="item-add">+ dodaj</div>'
+      + '</div>';
   }).join('');
 
-  // Zapisz wyniki tymczasowo
-  dropdown._products = products;
-
   dropdown.querySelectorAll('.dropdown-item').forEach(el => {
-    const pick = () => {
+    const pick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       const idx = parseInt(el.dataset.idx);
-      addIngredient(dropdown._products[idx]);
+      addIngredient(currentResults[idx]);
+      dropdownTouched = false;
       hideDropdown();
+      searchInput.value = '';
+      searchInput.blur();
     };
+    el.addEventListener('touchstart', () => { dropdownTouched = true; }, { passive: true });
+    el.addEventListener('touchend', pick);
     el.addEventListener('mousedown', pick);
-    el.addEventListener('touchend', (e) => { e.preventDefault(); pick(); });
   });
 }
 
-function hideDropdown() { dropdown.style.display = 'none'; }
+function hideDropdown() {
+  dropdown.style.display = 'none';
+  dropdownTouched = false;
+}
 
 // ─── CUSTOM FORM ─────────────────────────────────────────
 document.getElementById('toggleCustom').addEventListener('click', () => {
