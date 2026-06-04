@@ -209,6 +209,8 @@
   /* FOOTER */
   .footer { text-align: center; font-size: 11px; color: #bbb; font-family: 'IBM Plex Mono', monospace; letter-spacing: .05em; line-height: 1.8; }
   .footer a { color: #888; }
+  img.item-img:not([src]), img.item-img[src=""] { display: none; }
+  img.ing-emoji:not([src]), img.ing-emoji[src=""] { display: none; }
 </style>
 </head>
 <body>
@@ -419,7 +421,7 @@ function renderDropdown(products) {
   }
   dropdown.innerHTML = products.map((p, i) => {
     const imgHtml = p.img
-      ? '<img class="item-img" src="' + p.img + '" onerror="this.style.display='none'" alt="">'
+      ? '<img class="item-img" src="' + p.img + '" alt="">'
       : '<div class="item-emoji">' + foodEmoji(p.name) + '</div>';
     const macroHtml = '<div class="item-macros">'
       + '<span class="mp">B' + p.p + 'g</span><span class="sep">·</span>'
@@ -522,7 +524,7 @@ function renderIngredients() {
     const g = solved ? solved[idx] : null;
 
     const imgHtml = ing.img
-      ? '<img src="' + ing.img + '" class="ing-emoji" style="object-fit:contain;border-radius:8px" onerror="this.style.display='none'" alt="">'
+      ? '<img src="' + ing.img + '" class="ing-emoji" style="object-fit:contain;border-radius:8px" alt="">'
       : '<div class="ing-emoji">' + foodEmoji(ing.name) + '</div>';
 
     const macros = '<span style="color:#e05c3a">B' + ing.p + '</span> · <span style="color:#e8a020">T' + ing.f + '</span> · <span style="color:#3a90d4">W' + ing.c + '</span> · ' + ing.kcal + ' kcal/100g';
